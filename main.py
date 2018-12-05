@@ -4,6 +4,18 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout,
 from PyQt5.QtCore import Qt
 
 
+class InputEdit(QTextEdit):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+    def keyPressEvent(self, event):
+        QTextEdit.keyPressEvent(self, event)
+        key_code = event.key()
+        if key_code == Qt.Key_Enter or key_code == Qt.Key_Return:
+            print("enter key pressed")
+            self.setText("")
+
+
 class ChatUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -17,7 +29,8 @@ class ChatUI(QWidget):
         output_edit.setReadOnly(True)
         output_edit.setMinimumSize(400, 300)
         # the bottom left
-        input_edit = QTextEdit(self)
+        #input_edit = QTextEdit(self)
+        input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
         # the right panel
         chat_list = QListWidget(self)
