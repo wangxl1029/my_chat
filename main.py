@@ -2,9 +2,13 @@ import sys
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,
                              QSplitter, QListWidget, QApplication, QTextEdit)
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QTextCursor
 
 
 class InputEdit(QTextEdit):
+    sig_input = pyqtSignal(str)
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -12,8 +16,19 @@ class InputEdit(QTextEdit):
         QTextEdit.keyPressEvent(self, event)
         key_code = event.key()
         if key_code == Qt.Key_Enter or key_code == Qt.Key_Return:
-            print("enter key pressed")
+            # todo : to check shift key status
+            self.sig_input.emit(self.toPlainText())
             self.setText("")
+
+
+class OutputEdit(QTextEdit):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.message('welcome\n')
+
+    def message(self, msg):
+        self.moveCursor(QTextCursor.End)
+        self.insertPlainText(msg)
 
 
 class ChatUI(QWidget):
@@ -25,13 +40,13 @@ class ChatUI(QWidget):
         h_box = QHBoxLayout(self)
 
         # the top left
-        output_edit = QTextEdit(self)
+        output_edit = OutputEdit(self)
         output_edit.setReadOnly(True)
         output_edit.setMinimumSize(400, 300)
         # the bottom left
-        #input_edit = QTextEdit(self)
         input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
+        input_edit.sig_input.connect(output_edit.message)
         # the right panel
         chat_list = QListWidget(self)
 
