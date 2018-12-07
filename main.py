@@ -3,22 +3,19 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListWidget, QAppl
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from PyQt5.QtGui import QTextCursor
 
+from alive import MessageMemory
 
-class MessageMemory:
-    def __init__(self):
-        self.msg_list = []
-        self.max_msg_num = 3
 
-    def push(self, msg):
-        self.msg_list.append(msg)
-        if len(self.msg_list) > self.max_msg_num :
-            self.msg_list.pop()
+class FileSystemSensor:
+    pass
 
 
 class MessageReceiver(QObject):
     def __init__(self):
         super().__init__()
         self.mem = MessageMemory()
+        self.mem.daemon = True
+        self.mem.start()
 
     def on_input(self, msg):
         print(msg)
