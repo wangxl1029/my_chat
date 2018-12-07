@@ -1,9 +1,28 @@
 import sys
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout,
-                             QSplitter, QListWidget, QApplication, QTextEdit)
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListWidget, QApplication, QTextEdit)
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from PyQt5.QtGui import QTextCursor
+
+
+class MessageMemory:
+    def __init__(self):
+        self.msg_list = []
+        self.max_msg_num = 3
+
+    def push(self, msg):
+        self.msg_list.append(msg)
+        if len(self.msg_list) > self.max_msg_num :
+            self.msg_list.pop()
+
+
+class MessageReceiver(QObject):
+    def __init__(self):
+        super().__init__()
+        self.mem = MessageMemory()
+
+    def on_input(self, msg):
+        print(msg)
+        self.mem.push(msg)
 
 
 class InputEdit(QTextEdit):
@@ -32,8 +51,10 @@ class OutputEdit(QTextEdit):
 
 
 class ChatUI(QWidget):
+
     def __init__(self):
         super().__init__()
+        self.msg_receiver = MessageReceiver()
         self.init_ui()
 
     def init_ui(self):
@@ -47,6 +68,7 @@ class ChatUI(QWidget):
         input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
         input_edit.sig_input.connect(output_edit.message)
+        input_edit.sig_input.connect(self.msg_receiver.on_input)
         # the right panel
         chat_list = QListWidget(self)
 
