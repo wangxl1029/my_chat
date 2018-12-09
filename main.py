@@ -3,7 +3,9 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListWidget, QAppl
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
 from PyQt5.QtGui import QTextCursor
 
-from alive import MessageMemory
+from alive import BackgroundAliveThread
+
+g_alive_ins = BackgroundAliveThread.create()
 
 
 class MessageActiveThread(QThread):
@@ -13,11 +15,9 @@ class MessageActiveThread(QThread):
         super().__init__(parent)
 
     def run(self):
-        i = 1
         while True:
-            self.sleep(1)
-            self.sig_output.emit(f'#{i} some inner message\n')
-            i = i + 1
+            msg = g_alive_ins.get_msg()
+            self.sig_output.emit(msg)
 
 
 class MessageWorker(QObject):
@@ -26,8 +26,10 @@ class MessageWorker(QObject):
     def __init__(self):
         super().__init__()
 
-    def do_work(self, msg):
-        self.work_done.emit(f"{msg} done.\n")
+    def do_work(self, msg: str):
+        s = msg.strip('\n\r')
+        g_alive_ins.send_msg(s)
+        self.work_done.emit(f"strip message \"{s}\" done.\n")
 
 
 class MessageController(QObject):
@@ -46,18 +48,6 @@ class MessageController(QObject):
     def __del__(self):
         self.worker_thread.quit()
         self.worker_thread.wait()
-
-
-class MessageReceiver(QObject):
-    def __init__(self):
-        super().__init__()
-        self.mem = MessageMemory()
-        self.mem.daemon = True
-        self.mem.start()
-
-    def on_input(self, msg):
-        print(msg)
-        self.mem.push(msg)
 
 
 class InputEdit(QTextEdit):
@@ -89,9 +79,8 @@ class ChatUI(QWidget):
 
     def __init__(self):
         super().__init__()
-        #self.msg_receiver = MessageReceiver()
         self.controller = MessageController()
-        self.active_msg = MessageActiveThread(self)
+        self.listener = MessageActiveThread(self)
         self.init_ui()
 
     def init_ui(self):
@@ -105,7 +94,6 @@ class ChatUI(QWidget):
         input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
         input_edit.sig_input.connect(output_edit.message)
-        #input_edit.sig_input.connect(self.msg_receiver.on_input)
         input_edit.sig_input.connect(self.controller.operate)
         # the right panel
         chat_list = QListWidget(self)
@@ -131,8 +119,8 @@ class ChatUI(QWidget):
 
         # active/passive threads
         self.controller.operate_done.connect(output_edit.message)
-        self.active_msg.sig_output.connect(output_edit.message)
-        self.active_msg.start()
+        self.listener.sig_output.connect(output_edit.message)
+        self.listener.start()
 
 
 if __name__ == '__main__':

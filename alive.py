@@ -2,25 +2,34 @@ import queue
 import threading
 
 
-class MessageMemory(threading.Thread):
+class BackgroundAliveThread(threading.Thread):
+    @staticmethod
+    def create():
+        t = BackgroundAliveThread()
+        t.daemon = True
+        t.start()
+        return t
+
     def __init__(self):
         super().__init__()
-        self.mq = queue.Queue()
-        self.max_msg_num = 3
+        self.iq = queue.Queue()
+        self.oq = queue.Queue()
 
     def __del__(self):
-        self.mq.task_done()
-        self.mq.join()
+        self.iq.task_done()
+        self.oq.task_done()
+        self.iq.join()
+        self.oq.join()
 
     def run(self):
-        msg_num_max = 3
-        msg_list = []
+        count = 0
         while True:
-            msg = self.mq.get()
-            msg_list.append(msg)
-            if len(msg_list) > msg_num_max:
-                m = msg_list.pop()
-                print(f'remove msg "{m}"')
+            count += 1
+            msg: str = self.iq.get()
+            self.oq.put(f'#{count} : feedback message \"{msg}\".\n')
 
-    def push(self, msg):
-        self.mq.put(msg)
+    def send_msg(self, msg):
+        self.iq.put(msg)
+
+    def get_msg(self):
+        return self.oq.get()
