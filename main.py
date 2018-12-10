@@ -1,6 +1,6 @@
 import sys
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListWidget, QApplication, QTextEdit)
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListView, QApplication, QTextEdit)
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QStringListModel
 from PyQt5.QtGui import QTextCursor
 
 from alive import BackgroundAliveThread
@@ -51,7 +51,7 @@ class MessageController(QObject):
 
 
 class InputEdit(QTextEdit):
-    sig_input = pyqtSignal(str)
+    enter_return = pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -61,7 +61,7 @@ class InputEdit(QTextEdit):
         key_code = event.key()
         if key_code == Qt.Key_Enter or key_code == Qt.Key_Return:
             # todo : to check shift key status
-            self.sig_input.emit(self.toPlainText())
+            self.enter_return.emit(self.toPlainText())
             self.setText("")
 
 
@@ -93,10 +93,13 @@ class ChatUI(QWidget):
         # the bottom left
         input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
-        input_edit.sig_input.connect(output_edit.message)
-        input_edit.sig_input.connect(self.controller.operate)
+        input_edit.enter_return.connect(output_edit.message)
+        input_edit.enter_return.connect(self.controller.operate)
         # the right panel
-        chat_list = QListWidget(self)
+        list_model = QStringListModel()
+        list_model.setStringList(['system', 'user', 'anonym'])
+        chat_list = QListView(self)
+        chat_list.setModel(list_model)
 
         # the splitter vertical
         splitter1 = QSplitter(Qt.Vertical)
