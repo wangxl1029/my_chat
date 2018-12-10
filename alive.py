@@ -1,13 +1,44 @@
 import queue
 import threading
+import time
+
+
+class FilesystemSensor(threading.Thread):
+    @staticmethod
+    def create(start_flag=True):
+        t = FilesystemSensor()
+        t.daemon = True
+        if start_flag:
+            t.start()
+        return t
+
+    def __init__(self):
+        super().__init__()
+        self.iq = queue.Queue()
+        self.oq = queue.Queue()
+
+    def __del__(self):
+        self.iq.task_done()
+        self.oq.task_done()
+        self.iq.join()
+        self.oq.join()
+
+    def run(self):
+        while True:
+            time.sleep(1)
+            print('fs awake!')
+
+
+g_fs_sensor = FilesystemSensor.create()
 
 
 class BackgroundAliveThread(threading.Thread):
     @staticmethod
-    def create():
+    def create(start_flag=True):
         t = BackgroundAliveThread()
         t.daemon = True
-        t.start()
+        if start_flag:
+            t.start()
         return t
 
     def __init__(self):
