@@ -10,12 +10,13 @@ from setting import *
 bg_msgr_ins = AliveMessager.create()
 
 
-class MessageActiveThread(QThread):
+class MessageListener(QThread):
     answer = pyqtSignal(MyChatRole, str)
 
     def __init__(self, parent):
         super().__init__(parent)
 
+    # override the super class method
     def run(self):
         while True:
             msg = bg_msgr_ins.get_msg()
@@ -33,22 +34,22 @@ class MessageWorker(QObject):
         self.work_done.emit(role_sys, f"send message \"{msg}\" done.")
 
 
-class MessageController(QObject):
-    operate = pyqtSignal(str)
-    pass_work_done = pyqtSignal(MyChatRole, str)
+class MessageTransfer(QObject):
+    transfer = pyqtSignal(str)
+    message_done = pyqtSignal(MyChatRole, str)
 
     def __init__(self):
         super().__init__()
-        self.worker_thread = QThread()
-        self.worker = MessageWorker()
-        self.worker.moveToThread(self.worker_thread)
-        self.operate.connect(self.worker.do_work)
-        self.worker.work_done.connect(self.pass_work_done)
-        self.worker_thread.start()
+        self.__worker_thread = QThread()
+        self.__worker = MessageWorker()
+        self.__worker.moveToThread(self.__worker_thread)
+        self.transfer.connect(self.__worker.do_work)
+        self.__worker.work_done.connect(self.message_done)
+        self.__worker_thread.start()
 
     def __del__(self):
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__worker_thread.quit()
+        self.__worker_thread.wait()
 
 
 class InputEdit(QTextEdit):
@@ -58,6 +59,7 @@ class InputEdit(QTextEdit):
     def __init__(self, parent):
         super().__init__(parent)
 
+    # override slot
     def keyPressEvent(self, event):
         QTextEdit.keyPressEvent(self, event)
         key_code = event.key()
@@ -78,6 +80,7 @@ class OutputEdit(QTextEdit):
         self.moveCursor(QTextCursor.End)
         self.insertPlainText(msg)
 
+    # No signature slot
     def role_message(self, role: MyChatRole, msg: str):
         self.__enter_msg(role.role_msg(msg))
 
@@ -86,8 +89,8 @@ class ChatUI(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.controller = MessageController()
-        self.listener = MessageActiveThread(self)
+        self.transfer = MessageTransfer()
+        self.listener = MessageListener(self)
         self.init_ui()
 
     def init_ui(self):
@@ -101,7 +104,7 @@ class ChatUI(QWidget):
         input_edit = InputEdit(self)
         input_edit.setMinimumHeight(50)
         input_edit.role_message.connect(output_edit.role_message)
-        input_edit.enter_return.connect(self.controller.operate)
+        input_edit.enter_return.connect(self.transfer.transfer)
         # the right panel
         list_model = QStringListModel()
         list_model.setStringList([role_sys.role_name, role_anonym.role_name, role_user.role_name])
@@ -122,8 +125,8 @@ class ChatUI(QWidget):
         self.setLayout(h_box)
         input_edit.setFocus()
 
-        # active/passive threads
-        self.controller.pass_work_done.connect(output_edit.role_message)
+        # message transfer/listener threads
+        self.transfer.message_done.connect(output_edit.role_message)
         self.listener.answer.connect(output_edit.role_message)
         self.listener.start()
 

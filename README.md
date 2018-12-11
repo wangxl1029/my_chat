@@ -48,6 +48,17 @@ Features
       * 参见：<https://blog.csdn.net/yexiangcsdn/article/details/80337491>
       * 参见：<https://blog.csdn.net/qq_24185239/article/details/83750474>
 
+
+##### Dec 11, 2018. Tue, Sunny
+
++ anonym  ['ænəˌnɪm] 
+   - noun.假名;无名氏; 笔名; 作者不明的出版物
++ pseudonym 英 [ˈsu:dənɪm] 美 [ˈsudn:ˌɪm]
+   - noun.假名，化名，（尤指）笔名
++ nom
+   - abbr.nominal 名义上的，有名无实的;Nominative 主格的
+
+
 ###### IDE PyCharm
 
 + print statement »
