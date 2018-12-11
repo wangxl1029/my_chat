@@ -32,10 +32,10 @@ class FilesystemSensor(threading.Thread):
 g_fs_sensor = FilesystemSensor.create()
 
 
-class BackgroundAliveThread(threading.Thread):
+class AliveMessager(threading.Thread):
     @staticmethod
     def create(start_flag=True):
-        t = BackgroundAliveThread()
+        t = AliveMessager()
         t.daemon = True
         if start_flag:
             t.start()
@@ -57,7 +57,7 @@ class BackgroundAliveThread(threading.Thread):
         while True:
             count += 1
             msg: str = self.iq.get()
-            self.oq.put(f'#{count} : feedback message \"{msg}\".\n')
+            self.oq.put(f'#{count} got message \"{msg}\".')
 
     def send_msg(self, msg):
         self.iq.put(msg)
