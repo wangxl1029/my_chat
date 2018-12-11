@@ -1,7 +1,13 @@
 import queue
+import collections
 import threading
 import time
 import os
+import random
+
+
+def random_bool():
+    return random.random() < 0.5
 
 
 class FilesystemSensor(threading.Thread):
@@ -15,7 +21,7 @@ class FilesystemSensor(threading.Thread):
 
     def __init__(self):
         super().__init__()
-        self._reset_target()
+        self.__step_reset_target()
         self.iq = queue.Queue()
         self.oq = queue.Queue()
 
@@ -25,22 +31,70 @@ class FilesystemSensor(threading.Thread):
         self.iq.join()
         self.oq.join()
 
-    def _reset_target(self):
-        self.target_dir = os.getcwd()
+    def __next_step(self):
+        if self.__ctx_target is None:
+            self.__step_reset_target()
+        elif os.path.isdir(self.__ctx_target):
+            self.__step_walk_dir()
+        elif os.path.isfile(self.__ctx_target):
+            self.__step_walk_file_property()
+        else:
+            self.__step_reset_target()
 
+    def __step_reset_target(self):
+        self.__ctx_target = os.getcwd()
+
+    def __step_walk_dir(self):
+        is_broken = False
+        cur_dir = self.__ctx_target
+        for root, dirs, files in os.walk(cur_dir):
+            for filename in files:
+                fullname = os.path.join(root, filename)
+                self.__ctx_target = fullname
+                print(f'walk dir @ {self.__ctx_target}')
+
+                is_broken = random_bool()
+                if is_broken:
+                    break
+
+            if is_broken:
+                break
+
+        if not is_broken:
+            self.__ctx_target = None
+
+    def __step_walk_file_property(self):
+        cur_file = self.__ctx_target
+        print(f'walk file property @ {self.__ctx_target}')
+        self.__ctx_target = None
+
+    # override the method of supper class
     def run(self):
         while True:
             time.sleep(1)
             print('fs awake!')
-            date_from_name = {}
-            dir_list = []
-            for name in os.listdir(self.target_dir):
-                fullname = os.path.join(self.target_dir, name)
-                if os.path.isfile(fullname):
-                    date_from_name[fullname] = os.path.getatime(fullname)
-                    print(f'{fullname}, {date_from_name[fullname]}')
-                elif os.path.isdir(fullname):
-                    dir_list += [fullname]
+            self.__next_step()
+
+    def __example_codes(self):
+        date_from_name = {}
+        dir_list = []
+        for name in os.listdir(self.__ctx_target):
+            fullname = os.path.join(self.__ctx_target, name)
+            if os.path.isfile(fullname):
+                date_from_name[fullname] = os.path.getatime(fullname)
+                print(f'{fullname}, {date_from_name[fullname]}')
+            elif os.path.isdir(fullname):
+                dir_list += [fullname]
+
+    def __example_codes_2(self):
+        data = collections.defaultdict(list)
+
+        for root, dirs, files in os.walk(self.__ctx_target):
+            for filename in files:
+                fullname = os.path.join(root, filename)
+                key = (os.path.getsize(fullname), filename)
+                data[key].append(fullname)
+
 
 g_fs_sensor = FilesystemSensor.create()
 
