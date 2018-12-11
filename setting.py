@@ -17,4 +17,4 @@ class MyChatRole:
 
 role_sys = MyChatRole('system', 'sys')
 role_user = MyChatRole('user', 'usr')
-role_anonym = MyChatRole('anonym', 'nom')
+role_anonym = MyChatRole('matrix', 'neo')

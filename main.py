@@ -58,6 +58,7 @@ class InputEdit(QTextEdit):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.setAcceptDrops(True)
 
     # override slot
     def keyPressEvent(self, event):
@@ -69,6 +70,17 @@ class InputEdit(QTextEdit):
             self.role_message.emit(role_user, msg)
             self.enter_return.emit(msg)
             self.setText("")
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls():
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        urls = e.mimeData().urls()
+        filename = urls[0].toLocalFile()
+        self.insertPlainText(filename)
 
 
 class OutputEdit(QTextEdit):
@@ -87,8 +99,8 @@ class OutputEdit(QTextEdit):
 
 class ChatUI(QWidget):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.transfer = MessageTransfer()
         self.listener = MessageListener(self)
         self.init_ui()
@@ -98,6 +110,8 @@ class ChatUI(QWidget):
 
         # the top left
         output_edit = OutputEdit(self)
+        output_edit_bg_col = QColor(240, 250, 240)
+        output_edit.setStyleSheet(f'background:{output_edit_bg_col.name()}')
         output_edit.setReadOnly(True)
         output_edit.setMinimumSize(400, 300)
         # the bottom left
