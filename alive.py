@@ -4,20 +4,40 @@ import threading
 import time
 import os
 import random
+import functools
 
 
 def random_bool():
     return random.random() < 0.5
 
 
-class FilesystemSensor(threading.Thread):
-    @staticmethod
-    def create(start_flag=True):
-        t = FilesystemSensor()
+def repored(function):
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        function(*args, **kwargs)
+        print(f'{function.__name__} is reported.')
+    return wrapper
+
+
+class AliveThread(threading.Thread):
+    @classmethod
+    def create(cls, start_flag=True):
+        # print(f'the class name is {cls}')
+        t = cls()
         t.daemon = True
         if start_flag:
             t.start()
         return t
+
+
+class FilesystemSensor(AliveThread):
+    # @staticmethod
+    # def create(start_flag=True):
+    #     t = FilesystemSensor()
+    #     t.daemon = True
+    #     if start_flag:
+    #         t.start()
+    #     return t
 
     def __init__(self):
         super().__init__()
@@ -41,10 +61,24 @@ class FilesystemSensor(threading.Thread):
         else:
             self.__step_reset_target()
 
+    @repored
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
 
+    def __walking_fullname(self, cur_dir):
+        for root, dirs, files in os.walk(cur_dir):
+            for filename in files:
+                fullname = os.path.join(root, filename)
+                yield fullname
+
+    @repored
     def __step_walk_dir(self):
+        for fullname in self.__walking_fullname(self.__ctx_target):
+            print(f'walk dir@{fullname}')
+
+        self.__ctx_target = None
+
+    def deprecated__step_walk_dir(self):
         is_broken = False
         cur_dir = self.__ctx_target
         for root, dirs, files in os.walk(cur_dir):
@@ -99,15 +133,7 @@ class FilesystemSensor(threading.Thread):
 g_fs_sensor = FilesystemSensor.create()
 
 
-class AliveMessager(threading.Thread):
-    @staticmethod
-    def create(start_flag=True):
-        t = AliveMessager()
-        t.daemon = True
-        if start_flag:
-            t.start()
-        return t
-
+class AliveMessager(AliveThread):
     def __init__(self):
         super().__init__()
         self.__iq = queue.Queue()

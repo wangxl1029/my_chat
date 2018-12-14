@@ -20,8 +20,70 @@ Features
 
 ### Development Log
 
-#### Week 49th, 2018
+#### Week 50th, 2018
 
+##### Dec 13, 2018. Thu, Sunny
+
+###### os walk
+
+Official online helper : <https://docs.python.org/3/library/os.html#os.walk>
+
+上面链接里对os walk的说明比较清楚了，这里简要总结下：
+
+`os.walk(top, topdown=True, onerror=None, followlinks=False)`
+
+的返回值是是一个`(dirpath, dirnames, filenames)`元组的产生式，即，yield。
+Os walk会访问top顶目录和其下的所有目录，每访问一个目录就会yield上述的三元组。
+三元组中的`dirpath`就是访问的当前目录，`dirnames`是当前目录下的所有目录名的list，
+`filenames`是当前目录下所有文件名（不包含文件链接）的list。
+
+###### 类方法 
+
+即，python的类里的方法冠以`@classmethod`修饰符的方法，即，所谓的类方法。
+类方法为该类的所有实例所共有，听起来好像类的静态方法，即，冠以`@staticmethod`的文法。
+但类方法与静态方法的区别是，类方法能在第一个参数传入类名，参考如下online help。
+
+- CSND online help : <https://blog.csdn.net/dyh4201/article/details/78336529>
+    * 评论：笔者认为此文还没有说到本质。
+    * 类方法的本质：在于，父类要调用派生类的方法时就一定要知道当前类名，
+    比较如下代码`create()`方法，体味类方法的优势。
+
+```python
+import threading
+class AliveThread(threading.Thread):
+    @classmethod
+    def create(cls, start_flag=True):
+        t = cls()
+        t.daemon = True
+        if start_flag:
+            t.start()
+        return t
+
+
+class FilesystemSensor(AliveThread):
+    # @staticmethod
+    # def create(start_flag=True):
+    #     t = FilesystemSensor()
+    #     t.daemon = True
+    #     if start_flag:
+    #         t.start()
+    #     return t
+
+    def __init__(self):
+        super().__init__()
+        
+class AliveMessager(threading.Thread):
+    @staticmethod
+    def create(start_flag=True):
+        t = AliveMessager()
+        t.daemon = True
+        if start_flag:
+            t.start()
+        return t
+
+    def __init__(self):
+        super().__init__()
+ ```
 
 ##### Dec 11, 2018. Tue, Sunny
 
@@ -86,6 +148,8 @@ output_edit = OutputEdit(self)
 output_edit_bg_col = QColor(240, 250, 240)
 output_edit.setStyleSheet(f'background:{output_edit_bg_col.name()}')
 ```
+
+#### Week 49th, 2018
 
 ##### Dec 6, 2018. Tue, Sunny
 
