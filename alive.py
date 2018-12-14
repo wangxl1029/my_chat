@@ -22,7 +22,6 @@ def repored(function):
 class AliveThread(threading.Thread):
     @classmethod
     def create(cls, start_flag=True):
-        # print(f'the class name is {cls}')
         t = cls()
         t.daemon = True
         if start_flag:
@@ -30,26 +29,60 @@ class AliveThread(threading.Thread):
         return t
 
 
-class FilesystemSensor(AliveThread):
-    # @staticmethod
-    # def create(start_flag=True):
-    #     t = FilesystemSensor()
-    #     t.daemon = True
-    #     if start_flag:
-    #         t.start()
-    #     return t
+class QueuePipe:
+    def __init__(self):
+        self.__iq = queue.Queue()
+        self.__oq = queue.Queue()
 
+    def inner_get(self):
+        return self.__iq.get()
+
+    def inner_put(self, item):
+        self.__oq.put(item)
+
+    def outer_get(self):
+        return self.__oq.get()
+
+    def outer_put(self, item):
+        self.__iq.put(item)
+
+    def task_done(self):
+        self.__iq.task_done()
+        self.__oq.task_done()
+
+    def join(self):
+        self.__iq.join()
+        self.__oq.join()
+
+
+class AliveMemory(AliveThread):
+    def __init__(self):
+        super().__init__()
+        self.__qp = QueuePipe()
+
+    def __del__(self):
+        self.__qp.task_done()
+        self.__qp.join()
+
+    # override the method of supper class
+    def run(self):
+        while True:
+            time.sleep(1)
+            print('memory alive!')
+
+
+g_mem = AliveMemory.create()
+
+
+class FilesystemSensor(AliveThread):
     def __init__(self):
         super().__init__()
         self.__step_reset_target()
-        self.iq = queue.Queue()
-        self.oq = queue.Queue()
+        self.__qp = QueuePipe()
 
     def __del__(self):
-        self.iq.task_done()
-        self.oq.task_done()
-        self.iq.join()
-        self.oq.join()
+        self.__qp.task_done()
+        self.__qp.join()
 
     def __next_step(self):
         if self.__ctx_target is None:
@@ -74,7 +107,8 @@ class FilesystemSensor(AliveThread):
     @repored
     def __step_walk_dir(self):
         for fullname in self.__walking_fullname(self.__ctx_target):
-            print(f'walk dir@{fullname}')
+            # print(f'walk dir@{fullname}')
+            pass
 
         self.__ctx_target = None
 
@@ -136,12 +170,10 @@ g_fs_sensor = FilesystemSensor.create()
 class AliveMessager(AliveThread):
     def __init__(self):
         super().__init__()
-        self.__iq = queue.Queue()
-        self.__oq = queue.Queue()
+        self.__qp = QueuePipe()
 
     def __del__(self):
-        self.__iq.join()
-        self.__oq.join()
+        self.__qp.join()
 
     # override the super class method
     def run(self):
@@ -149,14 +181,14 @@ class AliveMessager(AliveThread):
         while True:
             count += 1
             try:
-                msg: str = self.__iq.get()
-                self.__oq.put(f'#{count} got message \"{msg}\".')
+                msg = self.__qp.inner_get()
+                self.__qp.inner_put(f'#{count} got message \"{msg}\".')
+
             finally:
-                self.__iq.task_done()
-                self.__oq.task_done()
+                self.__qp.task_done()
 
     def send_msg(self, msg):
-        self.__iq.put(msg)
+        self.__qp.outer_put(msg)
 
     def get_msg(self):
-        return self.__oq.get()
+        return self.__qp.outer_get()
