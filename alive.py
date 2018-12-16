@@ -5,6 +5,14 @@ import time
 import os
 import random
 import functools
+from enum import Enum, unique
+
+
+@unique
+class FsTargetEnum(Enum):
+    unknown = 0
+    regular_file = 1
+    directory = 2
 
 
 def random_bool():
@@ -67,8 +75,15 @@ class AliveMemory(AliveThread):
     # override the method of supper class
     def run(self):
         while True:
-            time.sleep(1)
-            print('memory alive!')
+            msg = self.__qp.inner_get()
+            # print('memory alive!')
+            self.__qp.inner_put(msg)
+
+    def put(self, item):
+        self.__qp.outer_put(item)
+
+    def get(self):
+        return self.__qp.outer_get()
 
 
 g_mem = AliveMemory.create()
@@ -94,6 +109,31 @@ class FilesystemSensor(AliveThread):
         else:
             self.__step_reset_target()
 
+    def __step_check_prop(self, target):
+        target_type = FsTargetEnum.regular_file if os.path.isfile(target) else \
+            FsTargetEnum.directory if os.path.isdir(target) else FsTargetEnum.unknown
+        prop = target, target_type
+        g_mem.put(prop)
+        target_list = None
+        ctx = prop, target_list
+        return ctx
+
+    @repored
+    def __update_context(self):
+        pass
+
+    def __step_make_target_list(self):
+        pass
+
+    @repored
+    def __instinct(self, ctx):
+        # if ctx is None:
+        #     target = os.getcwd()
+        #     return self.__step_check_prop(target)
+        # else:
+        #     prop, target_list = ctx
+        pass
+
     @repored
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
@@ -108,7 +148,7 @@ class FilesystemSensor(AliveThread):
     def __step_walk_dir(self):
         for fullname in self.__walking_fullname(self.__ctx_target):
             # print(f'walk dir@{fullname}')
-            pass
+            g_mem.put(fullname)
 
         self.__ctx_target = None
 
@@ -138,10 +178,15 @@ class FilesystemSensor(AliveThread):
 
     # override the method of supper class
     def run(self):
+        ctx = None
+        count: int = 0
         while True:
+            count += 1
             time.sleep(1)
-            print('fs awake!')
+            print(f'file system awake #{count}')
             self.__next_step()
+            self.__update_context()
+            self.__instinct(ctx)
 
     def __example_codes(self):
         date_from_name = {}
@@ -182,7 +227,8 @@ class AliveMessager(AliveThread):
             count += 1
             try:
                 msg = self.__qp.inner_get()
-                self.__qp.inner_put(f'#{count} got message \"{msg}\".')
+                # self.__qp.inner_put(f'#{count} got message \"{msg}\".')
+                g_mem.put(msg)
 
             finally:
                 self.__qp.task_done()
@@ -191,4 +237,5 @@ class AliveMessager(AliveThread):
         self.__qp.outer_put(msg)
 
     def get_msg(self):
+        self.__qp.inner_put(g_mem.get())
         return self.__qp.outer_get()
