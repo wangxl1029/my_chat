@@ -20,7 +20,13 @@ class MessageListener(QThread):
     def run(self):
         while True:
             msg = bg_msgr_ins.get_msg()
-            self.answer.emit(role_anonym, msg)
+            if isinstance(msg, str):
+                self.answer.emit(role_anonym, msg)
+            else:
+                try:
+                    print(f'UI message listener, unexpected msg : \"{msg}\"!')
+                except AttributeError:
+                    print(f'UI message listener, unexpected msg , No str property available!')
 
 
 class MessageWorker(QObject):
