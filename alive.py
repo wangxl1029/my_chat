@@ -23,7 +23,17 @@ class FsCommandEnum(Enum):
     walk = 4
 
 
-def repored(function):
+@unique
+class MemoryInfoEnum(Enum):
+    fs_target_reset_done = 0
+    fs_target_prop_done = 1
+    fs_target_list_done = 2
+    fs_target_walk_done = 3
+
+    msg_input = 10
+
+
+def reported(function):
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         function(*args, **kwargs)
@@ -84,8 +94,9 @@ class AliveMemory(AliveThread):
     def run(self):
         while True:
             try:
-                msg = self.__qp.inner_get(True, 1)
-                self.__qp.inner_put(msg)
+                info_type, info_data = self.__qp.inner_get(True, 1)
+                if info_type == MemoryInfoEnum.msg_input:
+                    self.__qp.inner_put(info_data)
                 print('memory alive!')
             except queue.Empty:
                 print('memory timeout')
@@ -114,53 +125,50 @@ class FilesystemSensor(AliveThread):
         self.__qp.task_done()
         self.__qp.join()
 
-    def __next_step(self):
-        if self.__ctx_target is None:
-            self.__step_reset_target()
-        elif os.path.isdir(self.__ctx_target):
-            self.__step_walk_dir()
-        elif os.path.isfile(self.__ctx_target):
-            self.__step_walk_file_property()
-        else:
-            self.__step_reset_target()
-
+    @reported
     def __step_check_prop(self):
         target = self.__ctx_target
-        # region Description
+        prop = None
+
         if target is not None:
             target_type = FsTargetEnum.regular_file if os.path.isfile(target) else \
                 FsTargetEnum.directory if os.path.isdir(target) else FsTargetEnum.unknown
+
             prop = target, target_type
-            g_mem.put(prop)
-            target_list = None
-            ctx = prop, target_list
-            return ctx
-        # endregion
 
-    @repored
-    def __update_context(self):
-        pass
+        feedback = MemoryInfoEnum.fs_target_prop_done, prop
+        g_mem.put(feedback)
 
-    def __step_make_target_list(self):
-        pass
+    @reported
+    def __step_walk_directory(self):
+        data = None
+        if self.__ctx_target is None:
+            pass
 
-    @repored
+        feedback = MemoryInfoEnum.fs_target_list_done, data
+        g_mem.put(feedback)
+
+    @reported
+    def __step_list_target(self):
+        data = None
+        if self.__ctx_target is None:
+            pass
+
+        feedback = MemoryInfoEnum.fs_target_list_done, data
+        g_mem.put(feedback)
+
+    @reported
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
+        feedback = MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
+        g_mem.put(feedback)
 
-    def __walking_fullname(self, cur_dir):
+    @staticmethod
+    def __walking_fullname(cur_dir):
         for root, dirs, files in os.walk(cur_dir):
             for filename in files:
                 fullname = os.path.join(root, filename)
                 yield fullname
-
-    @repored
-    def __step_walk_dir(self):
-        for fullname in self.__walking_fullname(self.__ctx_target):
-            # print(f'walk dir@{fullname}')
-            g_mem.put(fullname)
-
-        self.__ctx_target = None
 
     def deprecated__step_walk_dir(self):
         is_broken = False
@@ -181,31 +189,18 @@ class FilesystemSensor(AliveThread):
         if not is_broken:
             self.__ctx_target = None
 
-    def __step_walk_file_property(self):
-        cur_file = self.__ctx_target
-        print(f'walk file property @ {self.__ctx_target}')
-        self.__ctx_target = None
-
     # override the method of supper class
     def run(self):
         action = {
             FsCommandEnum.reset: self.__step_reset_target,
-            FsCommandEnum.list_dir: self.__step_make_target_list,
+            FsCommandEnum.list_dir: self.__step_list_target,
             FsCommandEnum.get_prop: self.__step_check_prop,
-            FsCommandEnum.walk: self.__step_walk_file_property
+            FsCommandEnum.walk: self.__step_walk_directory
         }
-        ctx = None
-        count: int = 0
         while True:
-            count += 1
-            # time.sleep(1)
-            # print(f'file system awake #{count}')
             cmd = self.__qp.inner_get()
             action[cmd]()
             print(f'{cmd}')
-            # self.__next_step()
-            # self.__update_context()
-            # self.__instinct(ctx)
 
     def __example_codes(self):
         date_from_name = {}
@@ -249,8 +244,7 @@ class AliveMessager(AliveThread):
             count += 1
             try:
                 msg = self.__qp.inner_get()
-                # self.__qp.inner_put(f'#{count} got message \"{msg}\".')
-                g_mem.put(msg)
+                g_mem.put((MemoryInfoEnum.msg_input, msg))
 
             finally:
                 self.__qp.task_done()

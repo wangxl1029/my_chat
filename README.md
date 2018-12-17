@@ -20,6 +20,46 @@ Features
 
 ### Development Log
 
+#### Category
+
++ python native
+    - random module
+        * [random choice](#J8908), etc.@CSDN
+    - name enumerate module
++ PyQt5
+
+
+
+#### Week 51th, 2018
+
+##### Dec 17, 2018. Mon, Sunny
+
+###### queue get
+
+Official online help :  
+» <https://docs.python.org/3/library/queue.html#queue.Queue.get>
+
+Alive memory会用到queue的get方法的timeout，timeout的单位是秒。
+
+###### random choice
+
+<html><span id="J8908">&#9875;</span>
+CSDN online help :
+</html>
+
+- <https://www.cnblogs.com/duking1991/p/6121300.html>
+
+
+这篇网文还不错，例说明了：
++ random.random
++ random.choice
++ random.uniform
++ random.int
++ random.sample
++ random.shuffle
+
+会发现在random module里，期待的**随机机**能都有。
+
 #### Week 50th, 2018
 
 ##### Dec 13, 2018. Thu, Sunny
