@@ -1,3 +1,7 @@
+import os
+import collections
+from alive_mem import *
+from alive_util import *
 from enum import Enum, unique
 
 
@@ -7,14 +11,13 @@ class FsTargetEnum(Enum):
     regular_file = 1
     directory = 2
 
-@unique
-class MemoryInfoEnum(Enum):
-    fs_target_reset_done = 0
-    fs_target_prop_done = 1
-    fs_target_list_done = 2
-    fs_target_walk_done = 3
 
-    msg_input = 10
+@unique
+class FsCommandEnum(Enum):
+    reset = 0
+    get_prop = 2
+    list_dir = 3
+    walk = 4
 
 
 class FilesystemSensor(AliveThread):
@@ -129,4 +132,3 @@ class FilesystemSensor(AliveThread):
 
 
 g_fs_sensor = FilesystemSensor.create()
-

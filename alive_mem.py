@@ -1,9 +1,17 @@
-import queue
-from enum import Enum, unique
-
 import random
 
-from alive import *
+from alive_fs import *
+from alive_util import *
+
+
+@unique
+class MemoryInfoEnum(Enum):
+    fs_target_reset_done = 0
+    fs_target_prop_done = 1
+    fs_target_list_done = 2
+    fs_target_walk_done = 3
+
+    msg_input = 10
 
 
 class AliveMemory(AliveThread):

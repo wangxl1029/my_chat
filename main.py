@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListView, QApplic
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QStringListModel
 from PyQt5.QtGui import QTextCursor, QColor
 
-from alive import AliveMessager
+from alive_msg import AliveMessager
 from setting import *
 
 # background messager instance
