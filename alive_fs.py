@@ -1,8 +1,9 @@
 import os
 import collections
-from alive_mem import *
-from alive_util import *
+import random
 from enum import Enum, unique
+import alive_util
+import alive_mem as am
 
 
 @unique
@@ -20,17 +21,17 @@ class FsCommandEnum(Enum):
     walk = 4
 
 
-class FilesystemSensor(AliveThread):
+class FilesystemSensor(alive_util.AliveThread):
     def __init__(self):
         super().__init__()
         self.__step_reset_target()
-        self.__qp = QueuePipe()
+        self.__qp = alive_util.QueuePipe()
 
     def __del__(self):
         self.__qp.task_done()
         self.__qp.join()
 
-    @reported
+    @alive_util.reported
     def __step_check_prop(self):
         target = self.__ctx_target
         prop = None
@@ -41,32 +42,32 @@ class FilesystemSensor(AliveThread):
 
             prop = target, target_type
 
-        feedback = MemoryInfoEnum.fs_target_prop_done, prop
-        g_mem.put(feedback)
+        feedback = am.MemoryInfoEnum.fs_target_prop_done, prop
+        am.instance().put(feedback)
 
-    @reported
+    @alive_util.reported
     def __step_walk_directory(self):
         data = None
         if self.__ctx_target is None:
             pass
 
-        feedback = MemoryInfoEnum.fs_target_list_done, data
-        g_mem.put(feedback)
+        feedback = am.MemoryInfoEnum.fs_target_list_done, data
+        am.instance().put(feedback)
 
-    @reported
+    @alive_util.reported
     def __step_list_target(self):
         data = None
         if self.__ctx_target is None:
             pass
 
-        feedback = MemoryInfoEnum.fs_target_list_done, data
-        g_mem.put(feedback)
+        feedback = am.MemoryInfoEnum.fs_target_list_done, data
+        am.instance().put(feedback)
 
-    @reported
+    @alive_util.reported
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
-        feedback = MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
-        g_mem.put(feedback)
+        # feedback = am.MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
+        # am.instance().put(feedback)
 
     @staticmethod
     def __walking_fullname(cur_dir):
@@ -131,4 +132,8 @@ class FilesystemSensor(AliveThread):
         self.__qp.outer_put(cmd)
 
 
-g_fs_sensor = FilesystemSensor.create()
+_fs_sensor = FilesystemSensor.create()
+
+
+def instance():
+    return _fs_sensor

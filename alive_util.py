@@ -14,6 +14,7 @@ def reported(function):
 class AliveThread(threading.Thread):
     @classmethod
     def create(cls, start_flag=True):
+        print(f'thread {cls} to be created.')
         t = cls()
         t.daemon = True
         if start_flag:

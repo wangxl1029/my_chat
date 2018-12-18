@@ -1,16 +1,15 @@
-from enum import Enum, unique
-from alive_util import *
-from alive_mem import *
+import alive_mem as am
+import alive_util as au
 
 
 class UniqueIdGenerator:
     pass
 
 
-class AliveMessager(AliveThread):
+class AliveMessager(au.AliveThread):
     def __init__(self):
         super().__init__()
-        self.__qp = QueuePipe()
+        self.__qp = au.QueuePipe()
 
     def __del__(self):
         self.__qp.join()
@@ -22,7 +21,7 @@ class AliveMessager(AliveThread):
             count += 1
             try:
                 msg = self.__qp.inner_get()
-                g_mem.put((MemoryInfoEnum.msg_input, msg))
+                am.instance().put((am.MemoryInfoEnum.msg_input, msg))
 
             finally:
                 self.__qp.task_done()
@@ -32,5 +31,5 @@ class AliveMessager(AliveThread):
         print(f'messager send : \"{msg}\"')
 
     def get_msg(self):
-        self.__qp.inner_put(g_mem.get())
+        self.__qp.inner_put(am.instance().get())
         return self.__qp.outer_get()

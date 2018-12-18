@@ -1,7 +1,10 @@
 import random
+from enum import Enum, unique
 
-from alive_fs import *
-from alive_util import *
+import alive_fs as fs
+import alive_util as au
+
+__all__ = ["MemoryInfoEnum", "AliveMemory", "instance"]
 
 
 @unique
@@ -14,10 +17,10 @@ class MemoryInfoEnum(Enum):
     msg_input = 10
 
 
-class AliveMemory(AliveThread):
+class AliveMemory(au.AliveThread):
     def __init__(self):
         super().__init__()
-        self.__qp = QueuePipe()
+        self.__qp = au.QueuePipe()
 
     def __del__(self):
         self.__qp.task_done()
@@ -31,12 +34,12 @@ class AliveMemory(AliveThread):
                 if info_type == MemoryInfoEnum.msg_input:
                     self.__qp.inner_put(info_data)
                 print('memory alive!')
-            except queue.Empty:
+            except au.queue.Empty:
                 print('memory timeout')
 
-            cmd = random.choice([FsCommandEnum.reset, FsCommandEnum.get_prop,
-                                 FsCommandEnum.list_dir, FsCommandEnum.walk])
-            g_fs_sensor.send_cmd(cmd)
+            # cmd = random.choice([au.FsCommandEnum.reset, au.FsCommandEnum.get_prop,
+            #                      au.FsCommandEnum.list_dir, au.FsCommandEnum.walk])
+            # fs.instance().send_cmd(cmd)
 
     def put(self, item):
         self.__qp.outer_put(item)
@@ -45,4 +48,8 @@ class AliveMemory(AliveThread):
         return self.__qp.outer_get()
 
 
-g_mem = AliveMemory.create()
+_alive_mem = AliveMemory.create()
+
+
+def instance():
+    return _alive_mem
