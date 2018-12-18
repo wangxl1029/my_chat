@@ -32,6 +32,28 @@ Features
 
 #### Week 51th, 2018
 
+##### Dec 18, 2018. Tue, Sunny
+
+##### never call method in ctor
+
+千万不要在构造函数里调用self的方法！就像下面代码里被注释掉的那一行。
+
+```python
+class FilesystemSensor(alive_util.AliveThread):
+    def __init__(self):
+        super().__init__()
+        self.__ctx_target = None
+        self.__qp = alive_util.QueuePipe()
+        # self.__step_reset_target()
+```
+
+**注意**：因为python3类的member variables都在`__init__(self)`方法定义，
+所以在`__init__(self)`调用自己类里的method会很容易出问题。
+
+不要以为在`__init__(self)`里调用自己类里的method，在这个method里，
+也可以定义自己类的成员变量，其实除了`__init__(self)`以外的其它类method，
+是定义不了的自己类的的成员变量的。
+
 ##### Dec 17, 2018. Mon, Sunny
 
 ###### queue get

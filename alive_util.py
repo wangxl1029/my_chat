@@ -7,7 +7,7 @@ def reported(function):
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         function(*args, **kwargs)
-        print(f'{function.__name__} is reported.')
+        # print(f'{function.__name__} is reported.')
     return wrapper
 
 

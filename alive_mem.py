@@ -33,13 +33,17 @@ class AliveMemory(au.AliveThread):
                 info_type, info_data = self.__qp.inner_get(True, 1)
                 if info_type == MemoryInfoEnum.msg_input:
                     self.__qp.inner_put(info_data)
-                print('memory alive!')
+                    print(f"-------> {info_data}")
+                else:
+                    # print(f'memory alive{info_type}!')
+                    pass
+
             except au.queue.Empty:
                 print('memory timeout')
 
-            # cmd = random.choice([au.FsCommandEnum.reset, au.FsCommandEnum.get_prop,
-            #                      au.FsCommandEnum.list_dir, au.FsCommandEnum.walk])
-            # fs.instance().send_cmd(cmd)
+            cmd = random.choice([fs.FsCommandEnum.reset, fs.FsCommandEnum.get_prop,
+                                 fs.FsCommandEnum.list_dir, fs.FsCommandEnum.walk])
+            fs.instance().send_cmd(cmd)
 
     def put(self, item):
         self.__qp.outer_put(item)

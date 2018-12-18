@@ -24,7 +24,7 @@ class FsCommandEnum(Enum):
 class FilesystemSensor(alive_util.AliveThread):
     def __init__(self):
         super().__init__()
-        self.__step_reset_target()
+        self.__ctx_target = None
         self.__qp = alive_util.QueuePipe()
 
     def __del__(self):
@@ -66,8 +66,8 @@ class FilesystemSensor(alive_util.AliveThread):
     @alive_util.reported
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
-        # feedback = am.MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
-        # am.instance().put(feedback)
+        feedback = am.MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
+        am.instance().put(feedback)
 
     @staticmethod
     def __walking_fullname(cur_dir):
@@ -106,7 +106,7 @@ class FilesystemSensor(alive_util.AliveThread):
         while True:
             cmd = self.__qp.inner_get()
             action[cmd]()
-            print(f'{cmd}')
+            # print(f'{cmd}')
 
     def __example_codes(self):
         date_from_name = {}

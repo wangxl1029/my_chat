@@ -19,12 +19,14 @@ class AliveMessager(au.AliveThread):
         count = 0
         while True:
             count += 1
+            msg = None
             try:
                 msg = self.__qp.inner_get()
-                am.instance().put((am.MemoryInfoEnum.msg_input, msg))
 
+                am.instance().put((am.MemoryInfoEnum.msg_input, msg))
             finally:
-                self.__qp.task_done()
+                # self.__qp.task_done()
+                pass
 
     def send_msg(self, msg):
         self.__qp.outer_put(msg)
