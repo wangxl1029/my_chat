@@ -3,6 +3,7 @@ from enum import Enum, unique
 
 import alive_fs as fs
 import alive_util as au
+import util_channel as channel
 
 __all__ = ["MemoryInfoEnum", "AliveMemory", "instance"]
 
@@ -20,6 +21,7 @@ class MemoryInfoEnum(Enum):
 class AliveMemory(au.AliveThread):
     def __init__(self):
         super().__init__()
+        self.__chan2messager = channel.mem2messager
         self.__qp = au.QueuePipe()
 
     def __del__(self):
@@ -32,7 +34,8 @@ class AliveMemory(au.AliveThread):
             try:
                 info_type, info_data = self.__qp.inner_get(True, 1)
                 if info_type == MemoryInfoEnum.msg_input:
-                    self.__qp.inner_put(info_data)
+                    # self.__qp.inner_put(info_data)
+                    self.__chan2messager.put(info_data)
                     print(f"-------> {info_data}")
                 else:
                     # print(f'memory alive{info_type}!')

@@ -11,8 +11,8 @@ class AliveMessager(au.AliveThread):
     def __init__(self):
         # assert isinstance(queue, chan_mem2me)
         super().__init__()
-        self.__qp = au.QueuePipe()
         self.__chan_from_mem = channel.mem2messager
+        self.__chan_from_user = channel.user2messager
 
     def __del__(self):
         self.__qp.join()
@@ -22,22 +22,19 @@ class AliveMessager(au.AliveThread):
         count = 0
         while True:
             count += 1
-            msg = None
             try:
-                msg = self.__qp.inner_get()
+                msg = self.__chan_from_user.get()
 
                 am.instance().put((am.MemoryInfoEnum.msg_input, msg))
             finally:
-                # self.__qp.task_done()
-                print("task done")
+                self.__chan_from_user.task_done()
 
     def send_msg(self, msg):
-        self.__qp.outer_put(msg)
+        self.__chan_from_user.put(msg)
         print(f'messager send : \"{msg}\"')
 
     def get_msg(self):
-        self.__qp.inner_put(am.instance().get())
-        return self.__qp.outer_get()
+        return self.__chan_from_mem.get()
 
 
 _alive_messager = AliveMessager.create()
