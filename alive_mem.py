@@ -1,4 +1,5 @@
 import random
+import queue
 from enum import Enum, unique
 
 import alive_fs as fs
@@ -10,10 +11,12 @@ __all__ = ["MemoryInfoEnum", "AliveMemory", "instance"]
 
 @unique
 class MemoryInfoEnum(Enum):
-    fs_target_reset_done = 0
-    fs_target_prop_done = 1
-    fs_target_list_done = 2
-    fs_target_walk_done = 3
+    none = 0
+
+    fs_target_reset_done = 1
+    fs_target_prop_done = 2
+    fs_target_list_done = 3
+    fs_target_walk_done = 4
 
     msg_input = 10
 
@@ -21,38 +24,38 @@ class MemoryInfoEnum(Enum):
 class AliveMemory(au.AliveThread):
     def __init__(self):
         super().__init__()
+        self.__chan2me = channel.any2mem
+        self.__chan2fs = channel.mem2fs
         self.__chan2messager = channel.mem2messager
-        self.__qp = au.QueuePipe()
 
     def __del__(self):
-        self.__qp.task_done()
-        self.__qp.join()
+        self.__chan2me.task_done()
+        self.__chan2me.join()
 
     # override the method of supper class
     def run(self):
+        info_type = MemoryInfoEnum.none
+
         while True:
             try:
-                info_type, info_data = self.__qp.inner_get(True, 1)
+                info_type, info_data = self.__chan2me.get(True, 1)
+
+            except queue.Empty:
+                print('memory timeout')
+
+            finally:
+
                 if info_type == MemoryInfoEnum.msg_input:
-                    # self.__qp.inner_put(info_data)
                     self.__chan2messager.put(info_data)
                     print(f"-------> {info_data}")
                 else:
                     # print(f'memory alive{info_type}!')
                     pass
 
-            except au.queue.Empty:
-                print('memory timeout')
-
             cmd = random.choice([fs.FsCommandEnum.reset, fs.FsCommandEnum.get_prop,
                                  fs.FsCommandEnum.list_dir, fs.FsCommandEnum.walk])
-            fs.instance().send_cmd(cmd)
 
-    def put(self, item):
-        self.__qp.outer_put(item)
-
-    def get(self):
-        return self.__qp.outer_get()
+            self.__chan2fs.put(cmd)
 
 
 _alive_mem = AliveMemory.create()

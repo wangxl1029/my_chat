@@ -3,6 +3,7 @@ import collections
 import random
 from enum import Enum, unique
 import alive_util
+import util_channel as channel
 import alive_mem as am
 
 
@@ -25,11 +26,11 @@ class FilesystemSensor(alive_util.AliveThread):
     def __init__(self):
         super().__init__()
         self.__ctx_target = None
-        self.__qp = alive_util.QueuePipe()
+        self.__chan_from_mem = channel.mem2fs
+        self.__chan_to_mem = channel.any2mem
 
     def __del__(self):
-        self.__qp.task_done()
-        self.__qp.join()
+        self.__chan_from_mem.join()
 
     @alive_util.reported
     def __step_check_prop(self):
@@ -43,7 +44,7 @@ class FilesystemSensor(alive_util.AliveThread):
             prop = target, target_type
 
         feedback = am.MemoryInfoEnum.fs_target_prop_done, prop
-        am.instance().put(feedback)
+        self.__chan_to_mem.put(feedback)
 
     @alive_util.reported
     def __step_walk_directory(self):
@@ -52,7 +53,7 @@ class FilesystemSensor(alive_util.AliveThread):
             pass
 
         feedback = am.MemoryInfoEnum.fs_target_list_done, data
-        am.instance().put(feedback)
+        self.__chan_to_mem.put(feedback)
 
     @alive_util.reported
     def __step_list_target(self):
@@ -61,13 +62,13 @@ class FilesystemSensor(alive_util.AliveThread):
             pass
 
         feedback = am.MemoryInfoEnum.fs_target_list_done, data
-        am.instance().put(feedback)
+        self.__chan_to_mem.put(feedback)
 
     @alive_util.reported
     def __step_reset_target(self):
         self.__ctx_target = os.getcwd()
         feedback = am.MemoryInfoEnum.fs_target_reset_done, self.__ctx_target
-        am.instance().put(feedback)
+        self.__chan_to_mem.put(feedback)
 
     @staticmethod
     def __walking_fullname(cur_dir):
@@ -103,10 +104,14 @@ class FilesystemSensor(alive_util.AliveThread):
             FsCommandEnum.get_prop: self.__step_check_prop,
             FsCommandEnum.walk: self.__step_walk_directory
         }
+
         while True:
-            cmd = self.__qp.inner_get()
-            action[cmd]()
-            # print(f'{cmd}')
+            try:
+                cmd = self.__chan_from_mem.get()
+            finally:
+                self.__chan_from_mem.task_done()
+                action[cmd]()
+                # print(f'{cmd}')
 
     def __example_codes(self):
         date_from_name = {}
@@ -127,9 +132,6 @@ class FilesystemSensor(alive_util.AliveThread):
                 fullname = os.path.join(root, filename)
                 key = (os.path.getsize(fullname), filename)
                 data[key].append(fullname)
-
-    def send_cmd(self, cmd):
-        self.__qp.outer_put(cmd)
 
 
 _fs_sensor = FilesystemSensor.create()
