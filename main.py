@@ -3,11 +3,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QSplitter, QListView, QApplic
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QStringListModel
 from PyQt5.QtGui import QTextCursor, QColor
 
-from alive_msg import *
+import alive_msg
 from setting import *
-
-# background messager instance
-bg_msgr_ins = AliveMessager.create()
 
 
 class MessageListener(QThread):
@@ -19,7 +16,7 @@ class MessageListener(QThread):
     # override the super class method
     def run(self):
         while True:
-            msg = bg_msgr_ins.get_msg()
+            msg = alive_msg.instance().get_msg()
             if isinstance(msg, str):
                 self.answer.emit(role_anonym, msg)
             else:
@@ -36,7 +33,7 @@ class MessageWorker(QObject):
         super().__init__()
 
     def do_work(self, msg: str):
-        bg_msgr_ins.send_msg(msg)
+        alive_msg.instance().send_msg(msg)
         self.work_done.emit(role_sys, f"send message \"{msg}\" done.")
 
 

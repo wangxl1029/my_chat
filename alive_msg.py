@@ -1,5 +1,6 @@
 import alive_mem as am
 import alive_util as au
+import util_channel as channel
 
 
 class UniqueIdGenerator:
@@ -8,8 +9,10 @@ class UniqueIdGenerator:
 
 class AliveMessager(au.AliveThread):
     def __init__(self):
+        # assert isinstance(queue, chan_mem2me)
         super().__init__()
         self.__qp = au.QueuePipe()
+        self.__chan_from_mem = channel.mem2messager
 
     def __del__(self):
         self.__qp.join()
@@ -26,7 +29,7 @@ class AliveMessager(au.AliveThread):
                 am.instance().put((am.MemoryInfoEnum.msg_input, msg))
             finally:
                 # self.__qp.task_done()
-                pass
+                print("task done")
 
     def send_msg(self, msg):
         self.__qp.outer_put(msg)
@@ -35,3 +38,10 @@ class AliveMessager(au.AliveThread):
     def get_msg(self):
         self.__qp.inner_put(am.instance().get())
         return self.__qp.outer_get()
+
+
+_alive_messager = AliveMessager.create()
+
+
+def instance():
+    return _alive_messager
