@@ -18,7 +18,10 @@ class MemoryInfoEnum(Enum):
     fs_target_list_done = 3
     fs_target_walk_done = 4
 
+    fs_sensor_idle = 9
+
     msg_input = 10
+    msg_input_timeout = 11
 
 
 class AliveMemory(au.AliveThread):
@@ -32,13 +35,23 @@ class AliveMemory(au.AliveThread):
         self.__chan2me.task_done()
         self.__chan2me.join()
 
+    def msg_routine(self):
+        while True:
+            msg = yield
+            self.__chan2messager.put(msg)
+            print(f"-------> {msg}")
+
+    def fs_routine(self):
+        pass
+
     # override the method of supper class
     def run(self):
         info_type = MemoryInfoEnum.none
-
+        co_msg = self.msg_routine()
+        co_msg.send(None)
         while True:
             try:
-                info_type, info_data = self.__chan2me.get(True, 1)
+                info_type, info_data = self.__chan2me.get(True, 10)
 
             except queue.Empty:
                 print('memory timeout')
@@ -46,16 +59,13 @@ class AliveMemory(au.AliveThread):
             finally:
 
                 if info_type == MemoryInfoEnum.msg_input:
-                    self.__chan2messager.put(info_data)
-                    print(f"-------> {info_data}")
+                    co_msg.send(info_data)
+                elif info_type == MemoryInfoEnum.fs_sensor_idle:
+                    cmd = random.choice([fs.FsCommandEnum.reset, fs.FsCommandEnum.get_prop,
+                                         fs.FsCommandEnum.list_dir, fs.FsCommandEnum.walk])
+                    self.__chan2fs.put(cmd)
                 else:
-                    # print(f'memory alive{info_type}!')
-                    pass
-
-            cmd = random.choice([fs.FsCommandEnum.reset, fs.FsCommandEnum.get_prop,
-                                 fs.FsCommandEnum.list_dir, fs.FsCommandEnum.walk])
-
-            self.__chan2fs.put(cmd)
+                    print(f'memory alive{info_type}!')
 
 
 _alive_mem = AliveMemory.create()

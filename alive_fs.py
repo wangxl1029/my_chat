@@ -1,4 +1,5 @@
 import os
+import queue
 import collections
 import random
 from enum import Enum, unique
@@ -106,12 +107,21 @@ class FilesystemSensor(alive_util.AliveThread):
         }
 
         while True:
+            idle_flag = False
             try:
-                cmd = self.__chan_from_mem.get()
+                cmd = self.__chan_from_mem.get(timeout=1)
+
+            except queue.Empty:
+                idle_flag = True
+
             finally:
-                self.__chan_from_mem.task_done()
-                action[cmd]()
-                # print(f'{cmd}')
+                if idle_flag:
+                    self.__chan_to_mem.put((am.MemoryInfoEnum.fs_sensor_idle, None))
+
+                else:
+                    self.__chan_from_mem.task_done()
+                    action[cmd]()
+                    # print(f'{cmd}')
 
     def __example_codes(self):
         date_from_name = {}
